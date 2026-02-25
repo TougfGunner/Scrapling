@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scrapling - GitHub Repository Visualization</title>
+    <title>TougfGunner/Scrapling - Repository Visualization</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
@@ -13,9 +13,14 @@
         .repo-icon { font-size: 32px; }
         .repo-name { font-size: 26px; font-weight: 600; }
         .repo-name a { color: #58a6ff; text-decoration: none; }
+        .repo-name a:hover { text-decoration: underline; }
         .repo-name span { color: #8b949e; }
         .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; border: 1px solid #30363d; color: #8b949e; margin-left: 8px; }
-        .repo-desc { color: #8b949e; font-size: 15px; margin-bottom: 16px; max-width: 700px; line-height: 1.5; }
+        .fork-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; background: #1f3a5f; color: #58a6ff; margin-left: 8px; border: 1px solid #2d5a8e; }
+        .repo-desc { color: #8b949e; font-size: 15px; margin-bottom: 8px; max-width: 700px; line-height: 1.5; }
+        .fork-info { color: #8b949e; font-size: 13px; margin-bottom: 16px; }
+        .fork-info a { color: #58a6ff; text-decoration: none; }
+        .fork-info a:hover { text-decoration: underline; }
         
         .stats-row { display: flex; gap: 20px; flex-wrap: wrap; }
         .stat { display: flex; align-items: center; gap: 6px; background: #21262d; padding: 6px 14px; border-radius: 6px; border: 1px solid #30363d; font-size: 13px; }
@@ -44,6 +49,8 @@
         .file-name.dir { color: #58a6ff; }
         .file-msg { color: #8b949e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .file-date { color: #8b949e; text-align: right; white-space: nowrap; font-size: 12px; }
+        .file-new { background: #1a2e1a; }
+        .file-new .file-name { color: #3fb950; }
 
         .bench-table { width: 100%; border-collapse: collapse; background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
         .bench-table th { background: #21262d; padding: 10px 16px; text-align: left; font-size: 13px; font-weight: 600; color: #8b949e; }
@@ -63,6 +70,8 @@
         .contributor { display: flex; align-items: center; gap: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 20px; padding: 6px 14px 6px 8px; font-size: 13px; transition: border-color 0.2s; }
         .contributor:hover { border-color: #58a6ff; }
         .contributor-avatar { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #58a6ff, #bc8cff); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+        .contributor-you { border-color: #3fb950; }
+        .contributor-you .contributor-avatar { background: linear-gradient(135deg, #3fb950, #2ea043); }
 
         .install-block { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
         .install-cmd { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px 16px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; color: #e6edf3; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
@@ -72,12 +81,21 @@
         .topics { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
         .topic { background: #1f3a5f; color: #58a6ff; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 500; }
 
+        .bali-section { background: linear-gradient(135deg, #1a2332 0%, #1e2a1e 100%); border: 1px solid #2ea043; border-radius: 8px; padding: 24px; margin-bottom: 32px; }
+        .bali-title { font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #3fb950; display: flex; align-items: center; gap: 8px; }
+        .bali-desc { color: #8b949e; font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+        .bali-uses { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+        .bali-use { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 14px; font-size: 13px; }
+        .bali-use strong { color: #e6edf3; display: block; margin-bottom: 4px; }
+        .bali-use span { color: #8b949e; }
+
         @media (max-width: 768px) {
             .header { padding: 16px 20px; }
             .container { padding: 20px; }
             .file-row { grid-template-columns: 30px 1fr auto; }
             .file-msg { display: none; }
             .features-grid { grid-template-columns: 1fr; }
+            .bali-uses { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -87,10 +105,12 @@
     <div class="header-top">
         <div class="repo-icon">🕷️</div>
         <div class="repo-name">
-            <a href="#">D4Vinci</a> <span>/</span> <a href="#">Scrapling</a>
+            <a href="https://github.com/TougfGunner">TougfGunner</a> <span>/</span> <a href="https://github.com/TougfGunner/Scrapling">Scrapling</a>
             <span class="badge">Public</span>
+            <span class="fork-badge">🔀 Fork</span>
         </div>
     </div>
+    <div class="fork-info">forked from <a href="https://github.com/D4Vinci/Scrapling">D4Vinci/Scrapling</a></div>
     <div class="repo-desc">
         An adaptive Web Scraping framework that handles everything from a single request to a full-scale crawl! Its parser learns from website changes, its fetchers bypass anti-bot systems, and its spider framework enables concurrent multi-session crawls.
     </div>
@@ -99,7 +119,7 @@
         <div class="stat"><span class="stat-icon">🍴</span><span class="stat-value">979</span><span class="stat-label">Forks</span></div>
         <div class="stat"><span class="stat-icon">👁️</span><span class="stat-value">85</span><span class="stat-label">Watchers</span></div>
         <div class="stat"><span class="stat-icon">📦</span><span class="stat-value">v0.4</span><span class="stat-label">Latest</span></div>
-        <div class="stat"><span class="stat-icon">📝</span><span class="stat-value">1,128</span><span class="stat-label">Commits</span></div>
+        <div class="stat"><span class="stat-icon">📝</span><span class="stat-value">1,129</span><span class="stat-label">Commits</span></div>
         <div class="stat"><span class="stat-icon">🔀</span><span class="stat-value">5</span><span class="stat-label">Branches</span></div>
         <div class="stat"><span class="stat-icon">🏷️</span><span class="stat-value">38</span><span class="stat-label">Tags</span></div>
         <div class="stat"><span class="stat-icon">📄</span><span class="stat-value">BSD-3</span><span class="stat-label">License</span></div>
@@ -108,6 +128,41 @@
 
 <div class="container">
 
+    <!-- Bali Bliss Integration Section -->
+    <div class="bali-section">
+        <div class="bali-title">🌺 Bali Bliss Weddings — Integration Plan</div>
+        <div class="bali-desc">
+            This fork powers the scraping layer for <strong>Bali Bliss Weddings</strong> — automating vendor discovery, venue data extraction, lead generation, and competitor monitoring across wedding directories worldwide.
+        </div>
+        <div class="bali-uses">
+            <div class="bali-use">
+                <strong>🏛️ Venue Scraping</strong>
+                <span>Crawl WeddingWire, The Knot, Bridebook & local Bali directories for live pricing, capacity & availability</span>
+            </div>
+            <div class="bali-use">
+                <strong>📧 Vendor Lead Gen</strong>
+                <span>Extract vendor emails, phone numbers & social profiles for automated outreach via n8n workflows</span>
+            </div>
+            <div class="bali-use">
+                <strong>🛡️ Anti-Bot Bypass</strong>
+                <span>StealthyFetcher bypasses Cloudflare on protected vendor sites that block Selenium</span>
+            </div>
+            <div class="bali-use">
+                <strong>🤖 AI + MCP Extraction</strong>
+                <span>Connect to Gemini API for intelligent data extraction from unstructured venue pages into Firestore</span>
+            </div>
+            <div class="bali-use">
+                <strong>📈 Competitor Monitoring</strong>
+                <span>Track competitor wedding planners' pricing, packages & new venue partnerships in real-time</span>
+            </div>
+            <div class="bali-use">
+                <strong>📊 Directory Builder</strong>
+                <span>Auto-populate the Bali Bliss vendor directory with enriched, verified data at scale</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Features -->
     <div class="section">
         <div class="section-title"><span class="icon">✨</span> Key Features</div>
         <div class="features-grid">
@@ -138,6 +193,7 @@
         </div>
     </div>
 
+    <!-- File Tree -->
     <div class="section">
         <div class="section-title"><span class="icon">📁</span> Repository Structure</div>
         <div class="file-tree">
@@ -156,10 +212,12 @@
             <div class="file-row"><div class="file-icon">📊</div><div class="file-name">benchmarks.py</div><div class="file-msg">ops: update benchmarks script</div><div class="file-date">2 weeks ago</div></div>
             <div class="file-row"><div class="file-icon">⚙️</div><div class="file-name">pyproject.toml</div><div class="file-msg">build: fix readme path for pypi</div><div class="file-date">2 weeks ago</div></div>
             <div class="file-row"><div class="file-icon">🧪</div><div class="file-name">pytest.ini</div><div class="file-msg">test: fixes for Github CI issues</div><div class="file-date">3 months ago</div></div>
+            <div class="file-row file-new"><div class="file-icon">🌐</div><div class="file-name">scrapling_repo_visualization.html</div><div class="file-msg">docs: rebrand visualization to TougfGunner fork</div><div class="file-date">just now</div></div>
             <div class="file-row"><div class="file-icon">⚙️</div><div class="file-name">setup.cfg</div><div class="file-msg">build: pump up the version status</div><div class="file-date">2 weeks ago</div></div>
         </div>
     </div>
 
+    <!-- Benchmarks -->
     <div class="section">
         <div class="section-title"><span class="icon">🏎️</span> Performance Benchmarks — Text Extraction (5000 elements)</div>
         <table class="bench-table">
@@ -177,23 +235,29 @@
         </table>
     </div>
 
+    <!-- Languages -->
     <div class="section">
         <div class="section-title"><span class="icon">💻</span> Languages</div>
         <div class="lang-bar">
-            <div class="lang-segment" style="width: 98.2%; background: #3572A5;" title="Python 98.2%"></div>
+            <div class="lang-segment" style="width: 97.9%; background: #3572A5;" title="Python 97.9%"></div>
             <div class="lang-segment" style="width: 1.6%; background: #f1e05a;" title="JavaScript 1.6%"></div>
+            <div class="lang-segment" style="width: 0.3%; background: #e34c26;" title="HTML 0.3%"></div>
             <div class="lang-segment" style="width: 0.2%; background: #384d54;" title="Dockerfile 0.2%"></div>
         </div>
         <div class="lang-labels">
-            <div class="lang-label"><div class="lang-dot" style="background: #3572A5;"></div> Python <strong>98.2%</strong></div>
+            <div class="lang-label"><div class="lang-dot" style="background: #3572A5;"></div> Python <strong>97.9%</strong></div>
             <div class="lang-label"><div class="lang-dot" style="background: #f1e05a;"></div> JavaScript <strong>1.6%</strong></div>
+            <div class="lang-label"><div class="lang-dot" style="background: #e34c26;"></div> HTML <strong>0.3%</strong></div>
             <div class="lang-label"><div class="lang-dot" style="background: #384d54;"></div> Dockerfile <strong>0.2%</strong></div>
         </div>
     </div>
 
+    <!-- Installation -->
     <div class="section">
         <div class="section-title"><span class="icon">📦</span> Installation</div>
         <div class="install-block">
+            <div class="install-label">Clone this fork:</div>
+            <div class="install-cmd"><code>git clone https://github.com/TougfGunner/Scrapling.git</code></div>
             <div class="install-label">Basic (parser only):</div>
             <div class="install-cmd"><code>pip install scrapling</code></div>
             <div class="install-label">With fetchers + browsers:</div>
@@ -205,9 +269,11 @@
         </div>
     </div>
 
+    <!-- Contributors -->
     <div class="section">
-        <div class="section-title"><span class="icon">👥</span> Contributors (5)</div>
+        <div class="section-title"><span class="icon">👥</span> Contributors (6)</div>
         <div class="contributors">
+            <div class="contributor contributor-you"><div class="contributor-avatar">🎯</div> TougfGunner <span style="color:#3fb950; font-size:11px; margin-left:4px;">• you</span></div>
             <div class="contributor"><div class="contributor-avatar">D4</div> D4Vinci</div>
             <div class="contributor"><div class="contributor-avatar" style="background: linear-gradient(135deg, #3fb950, #58a6ff);">MM</div> marksmayo</div>
             <div class="contributor"><div class="contributor-avatar" style="background: linear-gradient(135deg, #f78166, #ffa657);">IB</div> ImgBotApp</div>
@@ -216,6 +282,7 @@
         </div>
     </div>
 
+    <!-- Topics -->
     <div class="section">
         <div class="section-title"><span class="icon">🏷️</span> Topics</div>
         <div class="topics">
@@ -232,6 +299,9 @@
             <span class="topic">playwright</span>
             <span class="topic">mcp-server</span>
             <span class="topic">ai-scraping</span>
+            <span class="topic" style="background:#1e3a2e; color:#3fb950;">bali-bliss-weddings</span>
+            <span class="topic" style="background:#1e3a2e; color:#3fb950;">lead-generation</span>
+            <span class="topic" style="background:#1e3a2e; color:#3fb950;">wedding-automation</span>
         </div>
     </div>
 
