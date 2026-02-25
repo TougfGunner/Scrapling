@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrapling - GitHub Repository Visualization</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
+        
+        .header { background: linear-gradient(135deg, #161b22 0%, #1a1f2e 100%); border-bottom: 1px solid #30363d; padding: 24px 40px; }
+        .header-top { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+        .repo-icon { font-size: 32px; }
+        .repo-name { font-size: 26px; font-weight: 600; }
+        .repo-name a { color: #58a6ff; text-decoration: none; }
+        .repo-name span { color: #8b949e; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; border: 1px solid #30363d; color: #8b949e; margin-left: 8px; }
+        .repo-desc { color: #8b949e; font-size: 15px; margin-bottom: 16px; max-width: 700px; line-height: 1.5; }
+        
+        .stats-row { display: flex; gap: 20px; flex-wrap: wrap; }
+        .stat { display: flex; align-items: center; gap: 6px; background: #21262d; padding: 6px 14px; border-radius: 6px; border: 1px solid #30363d; font-size: 13px; }
+        .stat-icon { font-size: 16px; }
+        .stat-value { font-weight: 600; color: #e6edf3; }
+        .stat-label { color: #8b949e; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 30px 40px; }
+        
+        .section { margin-bottom: 32px; }
+        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 8px; }
+        .section-title .icon { font-size: 20px; }
+
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .feature-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; transition: all 0.2s ease; cursor: default; }
+        .feature-card:hover { border-color: #58a6ff; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(88, 166, 255, 0.1); }
+        .feature-card h3 { font-size: 15px; margin-bottom: 8px; color: #e6edf3; display: flex; align-items: center; gap: 8px; }
+        .feature-card p { font-size: 13px; color: #8b949e; line-height: 1.5; }
+
+        .file-tree { background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+        .file-row { display: grid; grid-template-columns: 30px 1fr 1.2fr auto; align-items: center; padding: 8px 16px; border-bottom: 1px solid #21262d; font-size: 13px; transition: background 0.15s; }
+        .file-row:hover { background: #1c2128; }
+        .file-row:last-child { border-bottom: none; }
+        .file-icon { text-align: center; font-size: 16px; }
+        .file-name { color: #58a6ff; font-weight: 500; }
+        .file-name.dir { color: #58a6ff; }
+        .file-msg { color: #8b949e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-date { color: #8b949e; text-align: right; white-space: nowrap; font-size: 12px; }
+
+        .bench-table { width: 100%; border-collapse: collapse; background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+        .bench-table th { background: #21262d; padding: 10px 16px; text-align: left; font-size: 13px; font-weight: 600; color: #8b949e; }
+        .bench-table td { padding: 10px 16px; border-top: 1px solid #21262d; font-size: 13px; }
+        .bench-table tr:hover td { background: #1c2128; }
+        .bench-bar { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #3fb950, #58a6ff); min-width: 4px; display: inline-block; vertical-align: middle; margin-left: 8px; }
+        .highlight-row td { color: #3fb950; font-weight: 600; }
+
+        .lang-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 12px; }
+        .lang-segment { transition: all 0.3s; }
+        .lang-segment:hover { filter: brightness(1.3); }
+        .lang-labels { display: flex; gap: 20px; flex-wrap: wrap; }
+        .lang-label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+        .lang-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        .contributors { display: flex; gap: 12px; flex-wrap: wrap; }
+        .contributor { display: flex; align-items: center; gap: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 20px; padding: 6px 14px 6px 8px; font-size: 13px; transition: border-color 0.2s; }
+        .contributor:hover { border-color: #58a6ff; }
+        .contributor-avatar { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #58a6ff, #bc8cff); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+
+        .install-block { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
+        .install-cmd { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px 16px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; color: #e6edf3; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+        .install-cmd code { color: #79c0ff; }
+        .install-label { font-size: 12px; color: #8b949e; margin-top: 12px; margin-bottom: 4px; }
+
+        .topics { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .topic { background: #1f3a5f; color: #58a6ff; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 500; }
+
+        @media (max-width: 768px) {
+            .header { padding: 16px 20px; }
+            .container { padding: 20px; }
+            .file-row { grid-template-columns: 30px 1fr auto; }
+            .file-msg { display: none; }
+            .features-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-top">
+        <div class="repo-icon">🕷️</div>
+        <div class="repo-name">
+            <a href="#">D4Vinci</a> <span>/</span> <a href="#">Scrapling</a>
+            <span class="badge">Public</span>
+        </div>
+    </div>
+    <div class="repo-desc">
+        An adaptive Web Scraping framework that handles everything from a single request to a full-scale crawl! Its parser learns from website changes, its fetchers bypass anti-bot systems, and its spider framework enables concurrent multi-session crawls.
+    </div>
+    <div class="stats-row">
+        <div class="stat"><span class="stat-icon">⭐</span><span class="stat-value">14.8k</span><span class="stat-label">Stars</span></div>
+        <div class="stat"><span class="stat-icon">🍴</span><span class="stat-value">979</span><span class="stat-label">Forks</span></div>
+        <div class="stat"><span class="stat-icon">👁️</span><span class="stat-value">85</span><span class="stat-label">Watchers</span></div>
+        <div class="stat"><span class="stat-icon">📦</span><span class="stat-value">v0.4</span><span class="stat-label">Latest</span></div>
+        <div class="stat"><span class="stat-icon">📝</span><span class="stat-value">1,128</span><span class="stat-label">Commits</span></div>
+        <div class="stat"><span class="stat-icon">🔀</span><span class="stat-value">5</span><span class="stat-label">Branches</span></div>
+        <div class="stat"><span class="stat-icon">🏷️</span><span class="stat-value">38</span><span class="stat-label">Tags</span></div>
+        <div class="stat"><span class="stat-icon">📄</span><span class="stat-value">BSD-3</span><span class="stat-label">License</span></div>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="section">
+        <div class="section-title"><span class="icon">✨</span> Key Features</div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>🕷️ Spider Framework</h3>
+                <p>Scrapy-like API with concurrent crawling, multi-session support, pause/resume checkpoints, streaming mode, and built-in export.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🛡️ Anti-Bot Bypass</h3>
+                <p>StealthyFetcher bypasses Cloudflare Turnstile out of the box. Browser TLS fingerprint impersonation and HTTP/3 support.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🔄 Adaptive Parsing</h3>
+                <p>Smart element tracking that relocates elements after website changes using intelligent similarity algorithms.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🤖 AI & MCP Server</h3>
+                <p>Built-in MCP server for AI-assisted scraping with Claude/Cursor. Extracts targeted content to minimize token usage.</p>
+            </div>
+            <div class="feature-card">
+                <h3>⚡ Blazing Fast</h3>
+                <p>Optimized performance outperforming most Python scraping libraries. 10x faster JSON serialization than stdlib.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎯 Dev-Friendly</h3>
+                <p>Interactive shell, CLI extraction, rich navigation API, auto selector generation, and full type coverage.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title"><span class="icon">📁</span> Repository Structure</div>
+        <div class="file-tree">
+            <div class="file-row"><div class="file-icon">📂</div><div class="file-name dir">.github</div><div class="file-msg">docs: add a new issue template for documentation issues</div><div class="file-date">2 weeks ago</div></div>
+            <div class="file-row"><div class="file-icon">📂</div><div class="file-name dir">docs</div><div class="file-msg">docs: removing an irrelevant article</div><div class="file-date">1 hour ago</div></div>
+            <div class="file-row"><div class="file-icon">📂</div><div class="file-name dir">images</div><div class="file-msg">docs: adding new sponsor</div><div class="file-date">yesterday</div></div>
+            <div class="file-row"><div class="file-icon">📂</div><div class="file-name dir">scrapling</div><div class="file-msg">fix(checkpoint): correct error message</div><div class="file-date">2 weeks ago</div></div>
+            <div class="file-row"><div class="file-icon">📂</div><div class="file-name dir">tests</div><div class="file-msg">test: add tests for spiders engine</div><div class="file-date">2 weeks ago</div></div>
+            <div class="file-row"><div class="file-icon">📄</div><div class="file-name">.bandit.yml</div><div class="file-msg">ops: update bandit checklist</div><div class="file-date">last month</div></div>
+            <div class="file-row"><div class="file-icon">🐳</div><div class="file-name">.dockerignore</div><div class="file-msg">feat: Add docker support</div><div class="file-date">5 months ago</div></div>
+            <div class="file-row"><div class="file-icon">📄</div><div class="file-name">.gitignore</div><div class="file-msg">ops: exclude site directory from git</div><div class="file-date">2 weeks ago</div></div>
+            <div class="file-row"><div class="file-icon">🐳</div><div class="file-name">Dockerfile</div><div class="file-msg">ops: update docker file accordingly</div><div class="file-date">2 months ago</div></div>
+            <div class="file-row"><div class="file-icon">⚖️</div><div class="file-name">LICENSE</div><div class="file-msg">Initial commit</div><div class="file-date">2 years ago</div></div>
+            <div class="file-row"><div class="file-icon">📖</div><div class="file-name">README.md</div><div class="file-msg">docs: add the trending badge</div><div class="file-date">yesterday</div></div>
+            <div class="file-row"><div class="file-icon">🗺️</div><div class="file-name">ROADMAP.md</div><div class="file-msg">docs: update roadmap</div><div class="file-date">7 months ago</div></div>
+            <div class="file-row"><div class="file-icon">📊</div><div class="file-name">benchmarks.py</div><div class="file-msg">ops: update benchmarks script</div><div class="file-date">2 weeks ago</div></div>
+            <div class="file-row"><div class="file-icon">⚙️</div><div class="file-name">pyproject.toml</div><div class="file-msg">build: fix readme path for pypi</div><div class="file-date">2 weeks ago</div></div>
+            <div class="file-row"><div class="file-icon">🧪</div><div class="file-name">pytest.ini</div><div class="file-msg">test: fixes for Github CI issues</div><div class="file-date">3 months ago</div></div>
+            <div class="file-row"><div class="file-icon">⚙️</div><div class="file-name">setup.cfg</div><div class="file-msg">build: pump up the version status</div><div class="file-date">2 weeks ago</div></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title"><span class="icon">🏎️</span> Performance Benchmarks — Text Extraction (5000 elements)</div>
+        <table class="bench-table">
+            <thead><tr><th>#</th><th>Library</th><th>Time (ms)</th><th>vs Scrapling</th></tr></thead>
+            <tbody>
+                <tr class="highlight-row"><td>1</td><td>🕷️ Scrapling</td><td>2.02 <div class="bench-bar" style="width: 200px;"></div></td><td>1.0x</td></tr>
+                <tr><td>2</td><td>Parsel / Scrapy</td><td>2.04 <div class="bench-bar" style="width: 196px;"></div></td><td>1.01x</td></tr>
+                <tr><td>3</td><td>Raw Lxml</td><td>2.54 <div class="bench-bar" style="width: 160px;"></div></td><td>1.26x</td></tr>
+                <tr><td>4</td><td>PyQuery</td><td>24.17 <div class="bench-bar" style="width: 40px;"></div></td><td>~12x</td></tr>
+                <tr><td>5</td><td>Selectolax</td><td>82.63 <div class="bench-bar" style="width: 16px;"></div></td><td>~41x</td></tr>
+                <tr><td>6</td><td>MechanicalSoup</td><td>1549.71 <div class="bench-bar" style="width: 4px;"></div></td><td>~767x</td></tr>
+                <tr><td>7</td><td>BS4 + Lxml</td><td>1584.31 <div class="bench-bar" style="width: 4px;"></div></td><td>~784x</td></tr>
+                <tr><td>8</td><td>BS4 + html5lib</td><td>3391.91 <div class="bench-bar" style="width: 4px;"></div></td><td>~1679x</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title"><span class="icon">💻</span> Languages</div>
+        <div class="lang-bar">
+            <div class="lang-segment" style="width: 98.2%; background: #3572A5;" title="Python 98.2%"></div>
+            <div class="lang-segment" style="width: 1.6%; background: #f1e05a;" title="JavaScript 1.6%"></div>
+            <div class="lang-segment" style="width: 0.2%; background: #384d54;" title="Dockerfile 0.2%"></div>
+        </div>
+        <div class="lang-labels">
+            <div class="lang-label"><div class="lang-dot" style="background: #3572A5;"></div> Python <strong>98.2%</strong></div>
+            <div class="lang-label"><div class="lang-dot" style="background: #f1e05a;"></div> JavaScript <strong>1.6%</strong></div>
+            <div class="lang-label"><div class="lang-dot" style="background: #384d54;"></div> Dockerfile <strong>0.2%</strong></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title"><span class="icon">📦</span> Installation</div>
+        <div class="install-block">
+            <div class="install-label">Basic (parser only):</div>
+            <div class="install-cmd"><code>pip install scrapling</code></div>
+            <div class="install-label">With fetchers + browsers:</div>
+            <div class="install-cmd"><code>pip install "scrapling[fetchers]" && scrapling install</code></div>
+            <div class="install-label">Everything:</div>
+            <div class="install-cmd"><code>pip install "scrapling[all]" && scrapling install</code></div>
+            <div class="install-label">Docker:</div>
+            <div class="install-cmd"><code>docker pull pyd4vinci/scrapling</code></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title"><span class="icon">👥</span> Contributors (5)</div>
+        <div class="contributors">
+            <div class="contributor"><div class="contributor-avatar">D4</div> D4Vinci</div>
+            <div class="contributor"><div class="contributor-avatar" style="background: linear-gradient(135deg, #3fb950, #58a6ff);">MM</div> marksmayo</div>
+            <div class="contributor"><div class="contributor-avatar" style="background: linear-gradient(135deg, #f78166, #ffa657);">IB</div> ImgBotApp</div>
+            <div class="contributor"><div class="contributor-avatar" style="background: linear-gradient(135deg, #bc8cff, #d2a8ff);">AF</div> andyfcx</div>
+            <div class="contributor"><div class="contributor-avatar" style="background: linear-gradient(135deg, #f778ba, #ff9bce);">AY</div> AbdullahY36</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title"><span class="icon">🏷️</span> Topics</div>
+        <div class="topics">
+            <span class="topic">python</span>
+            <span class="topic">crawler</span>
+            <span class="topic">automation</span>
+            <span class="topic">ai</span>
+            <span class="topic">mcp</span>
+            <span class="topic">scraping</span>
+            <span class="topic">web-scraping</span>
+            <span class="topic">xpath</span>
+            <span class="topic">data-extraction</span>
+            <span class="topic">stealth</span>
+            <span class="topic">playwright</span>
+            <span class="topic">mcp-server</span>
+            <span class="topic">ai-scraping</span>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
