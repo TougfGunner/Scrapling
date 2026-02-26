@@ -81,13 +81,13 @@ def run_scrape(url, fetcher_type="basic", selectors=None, extract_type="full"):
     try:
         if fetcher_type == "basic":
             from scrapling import Fetcher
-            page = Fetcher().get(url)
+                        page = Fetcher.get(url)
         elif fetcher_type == "stealthy":
             from scrapling.fetchers import StealthyFetcher
-            page = StealthyFetcher().get(url)
+                        page = StealthyFetcher.fetch(url)
         elif fetcher_type == "playwright":
             from scrapling.fetchers import PlayWrightFetcher
-            page = PlayWrightFetcher().get(url)
+                        page = PlayWrightFetcher.fetch(url)
         else:
             result["error"] = f"Unknown fetcher type: {fetcher_type}"
             return result
