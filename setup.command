@@ -5,7 +5,8 @@
 # Double-click this file on Mac to run
 # ==========================================
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 
 echo ""
 echo "  Scrapling Setup for Bali Bliss Weddings"
@@ -14,121 +15,156 @@ echo ""
 
 # ---- Fix broken .zprofile Homebrew references ----
 if [ -f "$HOME/.zprofile" ]; then
-    if grep -q '/opt/homebrew/bin/brew' "$HOME/.zprofile" 2>/dev/null || grep -q '/usr/local/bin/brew' "$HOME/.zprofile" 2>/dev/null; then
+    if grep -q 'homebrew' "$HOME/.zprofile" 2>/dev/null; then
         if ! command -v brew &> /dev/null; then
-            echo "  Fixing broken Homebrew references in .zprofile..."
-            sed -i '' '/\/opt\/homebrew\/bin\/brew/d' "$HOME/.zprofile" 2>/dev/null
-            sed -i '' '/\/usr\/local\/bin\/brew/d' "$HOME/.zprofile" 2>/dev/null
+            echo "  Cleaning broken Homebrew lines from .zprofile..."
+            grep -v 'homebrew' "$HOME/.zprofile" > "$HOME/.zprofile.tmp" 2>/dev/null
+            mv "$HOME/.zprofile.tmp" "$HOME/.zprofile" 2>/dev/null
             echo "  .zprofile cleaned"
         fi
     fi
 fi
 
-# ---- Check for Homebrew ----
-if ! command -v brew &> /dev/null; then
-    echo "  Installing Homebrew..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# ---- Step 1: Check for existing virtual environment ----
+VENV_DIR=""
+SKIP_INSTALL=false
 
-    # Add Homebrew to PATH (Apple Silicon & Intel)
-    if [[ -f /opt/homebrew/bin/brew ]]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$HOME/.zprofile"
-    elif [[ -f /usr/local/bin/brew ]]; then
-        eval "$(/usr/local/bin/brew shellenv)"
-        echo 'eval "$(/usr/local/bin/brew shellenv)"' >> "$HOME/.zprofile"
-    fi
-    echo "  Homebrew installed"
-else
-    echo "  Homebrew already installed"
+if [ -d ".venv" ] && [ -f ".venv/bin/python" ]; then
+    VENV_DIR=".venv"
+    echo "  Found existing .venv"
+elif [ -d "venv" ] && [ -f "venv/bin/python" ]; then
+    VENV_DIR="venv"
+    echo "  Found existing venv"
 fi
 
-# ---- Find best Python 3.10+ ----
-PYTHON_CMD=""
-for ver in python3.13 python3.12 python3.11 python3.10; do
-    if command -v $ver &> /dev/null; then
-        PYTHON_CMD=$ver
-        break
+# If venv exists, check if Python in it works
+if [ -n "$VENV_DIR" ]; then
+    source "$VENV_DIR/bin/activate"
+    VENV_PY_VER=$("$VENV_DIR/bin/python" -c 'import sys; print(sys.version_info.minor)' 2>/dev/null)
+    if [ -n "$VENV_PY_VER" ]; then
+        echo "  Python 3.$VENV_PY_VER found in $VENV_DIR"
+        if [ "$VENV_PY_VER" -ge 10 ] 2>/dev/null; then
+            echo "  Python version OK (3.10+ required)"
+            SKIP_INSTALL=true
+        else
+            echo "  Python 3.$VENV_PY_VER is too old (need 3.10+)"
+            echo "  Will need to recreate venv..."
+            deactivate 2>/dev/null
+            VENV_DIR=""
+        fi
+    else
+        echo "  Venv Python is broken, will recreate..."
+        deactivate 2>/dev/null
+        VENV_DIR=""
     fi
-done
-
-# Check default python3
-if [ -z "$PYTHON_CMD" ] && command -v python3 &> /dev/null; then
-    PY_VER=$(python3 -c 'import sys; print(sys.version_info.minor)')
-    if [ "$PY_VER" -ge 10 ]; then
-        PYTHON_CMD=python3
-    fi
-fi
-
-# Install Python 3.11 if nothing found
-if [ -z "$PYTHON_CMD" ]; then
-    echo "  No Python 3.10+ found. Installing Python 3.11..."
-    brew install python@3.11
-    PYTHON_CMD=python3.11
-    echo "  Python 3.11 installed"
-else
-    echo "  Found: $($PYTHON_CMD --version)"
 fi
 
 echo ""
 
-# ---- Create or reuse Virtual Environment ----
-VENV_DIR=""
-if [ -d ".venv" ]; then
-    VENV_DIR=".venv"
-    echo "  Found existing .venv"
-elif [ -d "venv" ]; then
-    VENV_DIR="venv"
-    echo "  Found existing venv"
-else
+# ---- Step 2: Only install Homebrew + Python if no working venv ----
+if [ "$SKIP_INSTALL" = false ]; then
+    echo "  No working Python 3.10+ venv found. Setting up from scratch..."
+    echo ""
+
+    # Find Python 3.10+ on system
+    PYTHON_CMD=""
+    for ver in python3.13 python3.12 python3.11 python3.10; do
+        if command -v $ver &> /dev/null; then
+            PYTHON_CMD=$ver
+            break
+        fi
+    done
+
+    # Check default python3
+    if [ -z "$PYTHON_CMD" ] && command -v python3 &> /dev/null; then
+        PY_VER=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null)
+        if [ -n "$PY_VER" ] && [ "$PY_VER" -ge 10 ] 2>/dev/null; then
+            PYTHON_CMD=python3
+        fi
+    fi
+
+    # If no Python 3.10+, try installing via Homebrew
+    if [ -z "$PYTHON_CMD" ]; then
+        echo "  No Python 3.10+ found on system."
+        echo ""
+
+        # Check/install Homebrew
+        if ! command -v brew &> /dev/null; then
+            echo "  Installing Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+            # Add to PATH
+            if [ -f /opt/homebrew/bin/brew ]; then
+                eval "$(/opt/homebrew/bin/brew shellenv)"
+                echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$HOME/.zprofile"
+            elif [ -f /usr/local/bin/brew ]; then
+                eval "$(/usr/local/bin/brew shellenv)"
+                echo 'eval "$(/usr/local/bin/brew shellenv)"' >> "$HOME/.zprofile"
+            fi
+        fi
+
+        # Verify brew actually works now
+        if command -v brew &> /dev/null; then
+            echo "  Installing Python 3.11 via Homebrew..."
+            brew install python@3.11
+            PYTHON_CMD=python3.11
+        else
+            echo ""
+            echo "  ERROR: Homebrew installation failed."
+            echo "  This is usually a network issue."
+            echo ""
+            echo "  Try these manual fixes:"
+            echo "   1. Check your internet connection"
+            echo "   2. Try: curl -fsSL https://raw.githubusercontent.com"
+            echo "   3. If on VPN, try disconnecting it"
+            echo "   4. Install Homebrew manually: https://brew.sh"
+            echo ""
+            read -p "Press Enter to close..."
+            exit 1
+        fi
+    fi
+
+    echo "  Using: $($PYTHON_CMD --version)"
+    echo ""
+
+    # Remove broken venv if exists
+    if [ -n "$VENV_DIR" ]; then
+        rm -rf "$VENV_DIR"
+    fi
+
+    # Create new venv
     echo "  Creating virtual environment..."
     $PYTHON_CMD -m venv .venv
     VENV_DIR=".venv"
+    source "$VENV_DIR/bin/activate"
     echo "  Virtual environment created"
 fi
 
-# Activate venv
-source "$VENV_DIR/bin/activate"
-echo "  Virtual environment activated"
-echo "   Python: $(python --version)"
+echo "  Python: $(python --version)"
+echo "  Venv: $VENV_DIR"
 echo ""
 
-# ---- Check Python version in venv ----
-VENV_PY_VER=$(python -c 'import sys; print(sys.version_info.minor)')
-if [ "$VENV_PY_VER" -lt 10 ]; then
-    echo "  Your venv uses Python 3.$VENV_PY_VER but Scrapling needs 3.10+"
-    echo "   Recreating venv with $PYTHON_CMD..."
-    deactivate 2>/dev/null
-    rm -rf "$VENV_DIR"
-    $PYTHON_CMD -m venv .venv
-    VENV_DIR=".venv"
-    source "$VENV_DIR/bin/activate"
-    echo "  New venv created with $(python --version)"
-fi
-echo ""
-
-# ---- Install Scrapling ----
+# ---- Step 3: Install Scrapling ----
 echo "  Upgrading pip..."
-pip install --upgrade pip
+pip install --upgrade pip 2>&1 | tail -1
 echo ""
 
 echo "  Installing Scrapling with all extras..."
-pip install "scrapling[all]"
+pip install "scrapling[all]" 2>&1 | tail -5
 echo ""
 echo "  Scrapling installed"
 echo ""
 
-# ---- Install Browser Engines ----
-echo "  Installing browser engines (Playwright, Camoufox)..."
-scrapling install || echo "  Browser engine install had warnings (may be OK)"
-echo ""
-echo "  Browser engines installed"
+# ---- Step 4: Install Browser Engines ----
+echo "  Installing browser engines..."
+scrapling install 2>&1 | tail -3 || echo "  (browser engines may need manual setup)"
 echo ""
 
-# ---- Quick Test ----
+# ---- Step 5: Quick Test ----
 echo "  Running quick test..."
 python -c "
-from scrapling import Fetcher
 try:
+    from scrapling import Fetcher
     page = Fetcher().get('https://httpbin.org/get')
     if page:
         print('    Basic Fetcher: WORKING')
