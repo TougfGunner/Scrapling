@@ -258,13 +258,13 @@ class ScraplingHandler(http.server.BaseHTTPRequestHandler):
             SCRAPE_HISTORY.clear()
             self.send_json({"success": True, "message": "History cleared"})
 
-                    elif path == "/dashboard":
+
+        elif path == "/dashboard":
             dashboard_path = Path(__file__).parent / "data_dashboard.html"
             if dashboard_path.exists():
                 self.send_html(dashboard_path.read_text())
             else:
                 self.send_html("<h1>Dashboard not found</h1><p>data_dashboard.html is missing</p>")
-            
         else:
             self.send_json({"error": "Not found"}, 404)
     
