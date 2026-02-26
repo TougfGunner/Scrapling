@@ -99,7 +99,7 @@ def run_scrape(url, fetcher_type="basic", selectors=None, extract_type="full"):
                 data["title"] = ""
                 title_els = page.css("title")
                 if title_els:
-                    data["title"] = title_els[0].text() if hasattr(title_els[0], 'text') else str(title_els[0])
+                    data["title"] = title_els[0].text if hasattr(title_els[0], 'text') else str(title_els[0])
                 data["text_length"] = len(page.get_all_text()) if hasattr(page, 'get_all_text') else 0
                 data["html_length"] = len(str(page.body)) if hasattr(page, 'body') else 0
                 links = page.css("a[href]")
@@ -113,7 +113,7 @@ def run_scrape(url, fetcher_type="basic", selectors=None, extract_type="full"):
                 if links:
                     for a in links[:50]:
                         href = a.attrib.get("href", "") if hasattr(a, 'attrib') else ""
-                        txt = a.text() if hasattr(a, 'text') else str(a)
+                        txt = a.text if hasattr(a, 'text') else str(a)
                         link_list.append({"href": href, "text": txt[:100]})
                 data["links"] = link_list
                 
@@ -135,7 +135,7 @@ def run_scrape(url, fetcher_type="basic", selectors=None, extract_type="full"):
                 el_list = []
                 if elements:
                     for el in elements[:30]:
-                        txt = el.text() if hasattr(el, 'text') else str(el)
+                        txt = el.text if hasattr(el, 'text') else str(el)
                         el_list.append(txt[:200])
                 data["elements"] = el_list
                 
