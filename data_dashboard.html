@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scrapling Data Dashboard - Bali Bliss Weddings</title>
+<style>
+:root {
+  --bg: #0a0e17;
+  --bg2: #111827;
+  --card: #1a2332;
+  --input: #0d1520;
+  --accent: #06d6a0;
+  --accent2: #059669;
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --info: #3b82f6;
+  --txt: #e2e8f0;
+  --txt2: #94a3b8;
+  --dim: #64748b;
+  --border: #1e293b;
+  --border2: #334155;
+  --r: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--txt); min-height:100vh; }
+.bg-grid { position:fixed; top:0; left:0; width:100%; height:100%; background-image:linear-gradient(rgba(6,214,160,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,0.03) 1px,transparent 1px); background-size:50px 50px; z-index:0; }
+.app { position:relative; z-index:1; }
+.header { background:linear-gradient(135deg,var(--bg2),var(--card)); border-bottom:1px solid var(--border); padding:16px 32px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; backdrop-filter:blur(20px); }
+.logo { display:flex; align-items:center; gap:12px; }
+.logo-icon { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; color:#000; }
+.logo h1 { font-size:20px; font-weight:700; }
+.logo small { font-size:11px; color:var(--accent); font-weight:500; letter-spacing:1px; text-transform:uppercase; display:block; }
+.toolbar { display:flex; gap:10px; align-items:center; }
+.btn { padding:10px 20px; border-radius:8px; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; display:inline-flex; align-items:center; gap:8px; }
+.btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; box-shadow:0 4px 15px rgba(6,214,160,0.3); }
+.btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(6,214,160,0.4); }
+.btn-secondary { background:var(--input); color:var(--txt); border:1px solid var(--border2); }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-sm { padding:6px 12px; font-size:11px; }
+.container { max-width:1400px; margin:0 auto; padding:24px; }
+.tabs { display:flex; gap:4px; margin-bottom:24px; background:var(--bg2); border-radius:var(--r); padding:4px; border:1px solid var(--border); }
+.tab { padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:var(--txt2); transition:all 0.2s; }
+.tab:hover { color:var(--txt); background:var(--card); }
+.tab.active { background:var(--accent); color:#000; font-weight:600; }
+.panel { display:none; }
+.panel.active { display:block; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
+.stat { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:20px; position:relative; overflow:hidden; }
+.stat-val { font-size:28px; font-weight:800; }
+.stat-lbl { font-size:12px; color:var(--txt2); margin-top:4px; }
+.stat-ico { position:absolute; top:16px; right:16px; font-size:24px; opacity:0.4; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:20px; margin-bottom:16px; }
+.card h3 { font-size:16px; font-weight:600; margin-bottom:4px; }
+.card .sub { font-size:12px; color:var(--dim); margin-bottom:16px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; padding:12px 10px; color:var(--dim); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid var(--border); position:sticky; top:0; background:var(--card); }
+td { padding:10px; border-bottom:1px solid var(--border); vertical-align:top; }
+tr:hover td { background:rgba(6,214,160,0.05); }
+.tag { display:inline-block; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:600; text-transform:uppercase; }
+.tag-ok { background:rgba(6,214,160,0.15); color:var(--accent); }
+.tag-fail { background:rgba(239,68,68,0.15); color:var(--danger); }
+.tag-info { background:rgba(59,130,246,0.15); color:var(--info); }
+.bar-chart { display:flex; align-items:flex-end; gap:8px; height:200px; padding:10px 0; }
+.bar-col { display:flex; flex-direction:column; align-items:center; flex:1; gap:4px; }
+.bar { width:100%; border-radius:4px 4px 0 0; min-height:4px; transition:height 0.5s; }
+.bar-lbl { font-size:9px; color:var(--dim); text-align:center; word-break:break-all; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bar-val { font-size:10px; font-weight:600; color:var(--txt2); }
+.detail-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:200; display:none; justify-content:center; align-items:center; }
+.detail-overlay.show { display:flex; }
+.detail-modal { background:var(--card); border:1px solid var(--border2); border-radius:var(--r); width:90%; max-width:800px; max-height:80vh; overflow-y:auto; padding:24px; }
+.detail-modal h2 { font-size:18px; margin-bottom:16px; }
+.detail-modal .close { float:right; cursor:pointer; font-size:20px; color:var(--txt2); background:none; border:none; }
+.detail-modal .close:hover { color:var(--accent); }
+.kv-grid { display:grid; grid-template-columns:1fr 2fr; gap:8px; font-size:13px; }
+.kv-grid .k { color:var(--dim); font-weight:600; text-transform:uppercase; font-size:11px; padding:6px 0; }
+.kv-grid .v { padding:6px 0; word-break:break-all; }
+.empty { text-align:center; padding:40px; color:var(--dim); font-size:14px; }
+.toast-box { position:fixed; top:80px; right:24px; z-index:300; }
+.toast { padding:12px 20px; border-radius:8px; font-size:13px; margin-bottom:8px; animation:slideIn 0.3s; }
+.toast-ok { background:#065f46; border:1px solid var(--accent); }
+.toast-err { background:#7f1d1d; border:1px solid var(--danger); }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+.spinner { width:16px; height:16px; border:2px solid transparent; border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; display:inline-block; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.compare-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:768px) { .compare-row{grid-template-columns:1fr;} .stats{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="app">
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">S</div>
+    <div><h1>Data Dashboard</h1><small>Bali Bliss Weddings - Structured Data</small></div>
+  </div>
+  <div class="toolbar">
+    <span id="statusDot" style="width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block"></span>
+    <span id="statusTxt" style="font-size:12px;color:var(--txt2)">Connecting...</span>
+    <button class="btn btn-primary btn-sm" onclick="refreshAll()">Refresh Data</button>
+    <button class="btn btn-secondary btn-sm" onclick="exportCSV()">Export CSV</button>
+    <button class="btn btn-secondary btn-sm" onclick="exportJSON()">Export JSON</button>
+  </div>
+</header>
+<div class="container">
+  <div class="stats" id="statsRow"></div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('table',this)">Data Table</div>
+    <div class="tab" onclick="showTab('charts',this)">Charts</div>
+    <div class="tab" onclick="showTab('compare',this)">Compare Sites</div>
+    <div class="tab" onclick="showTab('timeline',this)">Timeline</div>
+    <div class="tab" onclick="showTab('raw',this)">Raw JSON</div>
+  </div>
+  <!-- Data Table Panel -->
+  <div class="panel active" id="panel-table">
+    <div class="card">
+      <h3>Scraped Data Results</h3>
+      <div class="sub">Structured data from all scraping operations - click any row for full details</div>
+      <div style="overflow-x:auto;max-height:60vh;overflow-y:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Time</th>
+              <th>URL</th>
+              <th>Fetcher</th>
+              <th>Status</th>
+              <th>Title</th>
+              <th>Links</th>
+              <th>Images</th>
+              <th>Text Length</th>
+              <th>HTML Size</th>
+              <th>Speed (ms)</th>
+            </tr>
+          </thead>
+          <tbody id="dataTableBody"></tbody>
+        </table>
+      </div>
+      <div id="tableEmpty" class="empty">No data yet. Run scrapes from the <a href="http://localhost:8888" style="color:var(--accent)">Control Panel</a> first.</div>
+    </div>
+  </div>
+  <!-- Charts Panel -->
+  <div class="panel" id="panel-charts">
+    <div class="compare-row">
+      <div class="card">
+        <h3>Links per Site</h3>
+        <div class="sub">Number of links found on each scraped page</div>
+        <div class="bar-chart" id="chartLinks"></div>
+      </div>
+      <div class="card">
+        <h3>Images per Site</h3>
+        <div class="sub">Number of images found on each scraped page</div>
+        <div class="bar-chart" id="chartImages"></div>
+      </div>
+    </div>
+    <div class="compare-row">
+      <div class="card">
+        <h3>Text Content Size</h3>
+        <div class="sub">Text content length in characters</div>
+        <div class="bar-chart" id="chartText"></div>
+      </div>
+      <div class="card">
+        <h3>Response Speed</h3>
+        <div class="sub">Scraping response time in milliseconds</div>
+        <div class="bar-chart" id="chartSpeed"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Compare Panel -->
+  <div class="panel" id="panel-compare">
+    <div class="card">
+      <h3>Site Comparison Matrix</h3>
+      <div class="sub">Side-by-side comparison of all successfully scraped sites (grouped by URL)</div>
+      <div style="overflow-x:auto;max-height:60vh;overflow-y:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Site Domain</th>
+              <th>Scrapes</th>
+              <th>Avg Speed</th>
+              <th>Avg Links</th>
+              <th>Avg Images</th>
+              <th>Avg Text</th>
+              <th>Last Title</th>
+              <th>Best Fetcher</th>
+            </tr>
+          </thead>
+          <tbody id="compareBody"></tbody>
+        </table>
+      </div>
+      <div id="compareEmpty" class="empty">No comparison data available yet.</div>
+    </div>
+  </div>
+  <!-- Timeline Panel -->
+  <div class="panel" id="panel-timeline">
+    <div class="card">
+      <h3>Scraping Timeline</h3>
+      <div class="sub">Chronological activity log with full details</div>
+      <div id="timelineContent"></div>
+      <div id="timelineEmpty" class="empty">No timeline data available yet.</div>
+    </div>
+  </div>
+  <!-- Raw JSON Panel -->
+  <div class="panel" id="panel-raw">
+    <div class="card">
+      <h3>Raw API Response</h3>
+      <div class="sub">Complete JSON data from /api/history endpoint</div>
+      <pre id="rawJson" style="background:var(--input);border:1px solid var(--border);border-radius:8px;padding:16px;overflow:auto;max-height:60vh;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);white-space:pre-wrap"></pre>
+    </div>
+  </div>
+</div><!-- end container -->
+</div><!-- end app -->
+<!-- Detail Modal -->
+<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-modal">
+    <button class="close" onclick="closeDetail()">&times;</button>
+    <h2 id="detailTitle">Scrape Details</h2>
+    <div id="detailContent"></div>
+  </div>
+</div>
+<div class="toast-box" id="toasts"></div>
+<script>
+const API = 'http://localhost:8888';
+let historyData = [];
+let serverOk = false;
+
+// Toast
+function toast(msg,ok=true){const d=document.createElement('div');d.className='toast '+(ok?'toast-ok':'toast-err');d.textContent=msg;document.getElementById('toasts').appendChild(d);setTimeout(()=>d.remove(),3000)}
+
+// Tab switching
+function showTab(name,el){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('panel-'+name).classList.add('active');el.classList.add('active')}
+
+// Helpers
+function shortUrl(u){try{return new URL(u).hostname}catch(e){return u.substring(0,30)}}
+function fmtNum(n){return n>=1000?(n/1000).toFixed(1)+'K':n||0}
+function fmtBytes(b){if(!b)return '0';if(b>1000000)return (b/1000000).toFixed(1)+'MB';if(b>1000)return (b/1000).toFixed(1)+'KB';return b+'B'}
+
+// Fetch data from API
+async function fetchHistory(){
+  try{
+    const r=await fetch(API+'/api/history?limit=200');
+    const d=await r.json();
+    historyData=d.history||[];
+    serverOk=true;
+    document.getElementById('statusDot').style.background='var(--accent)';
+    document.getElementById('statusTxt').textContent='Connected ('+historyData.length+' records)';
+    return true;
+  }catch(e){
+    serverOk=false;
+    document.getElementById('statusDot').style.background='var(--danger)';
+    document.getElementById('statusTxt').textContent='Server offline - start scrapling_server.py first';
+    return false;
+  }
+}
+
+// Render Stats
+function renderStats(){
+  const ok=historyData.filter(h=>h.success);
+  const fail=historyData.filter(h=>!h.success);
+  const avgSpeed=ok.length?Math.round(ok.reduce((s,h)=>s+h.timing_ms,0)/ok.length):0;
+  const totalLinks=ok.reduce((s,h)=>s+(h.data?.link_count||0),0);
+  const totalImgs=ok.reduce((s,h)=>s+(h.data?.image_count||0),0);
+  const uniqueUrls=new Set(historyData.map(h=>shortUrl(h.url))).size;
+  document.getElementById('statsRow').innerHTML=[
+    {v:historyData.length,l:'Total Scrapes',i:'&#128202;',c:'var(--accent)'},
+    {v:ok.length,l:'Successful',i:'&#9989;',c:'var(--accent)'},
+    {v:fail.length,l:'Failed',i:'&#10060;',c:'var(--danger)'},
+    {v:avgSpeed+'ms',l:'Avg Speed',i:'&#9889;',c:'var(--warn)'},
+    {v:totalLinks,l:'Total Links Found',i:'&#128279;',c:'var(--info)'},
+    {v:totalImgs,l:'Total Images Found',i:'&#128247;',c:'var(--info)'},
+    {v:uniqueUrls,l:'Unique Sites',i:'&#127760;',c:'var(--accent)'}
+  ].map(s=>'<div class="stat"><div class="stat-val" style="color:'+s.c+'">'+s.v+'</div><div class="stat-lbl">'+s.l+'</div><div class="stat-ico">'+s.i+'</div></div>').join('');
+}
+
+// Render Data Table
+function renderTable(){
+  const tbody=document.getElementById('dataTableBody');
+  const empty=document.getElementById('tableEmpty');
+  if(!historyData.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=historyData.map((h,i)=>{
+    const d=h.data||{};
+    const t=new Date(h.timestamp).toLocaleTimeString();
+    const host=shortUrl(h.url);
+    const title=(d.title||'').substring(0,40);
+    return '<tr style="cursor:pointer" onclick="showDetail('+i+')">'+'<td>'+(i+1)+'</td>'+'<td style="color:var(--dim);font-size:12px">'+t+'</td>'+'<td title="'+h.url+'"><strong>'+host+'</strong></td>'+'<td><span class="tag tag-info">'+h.fetcher+'</span></td>'+'<td><span class="tag '+(h.success?'tag-ok':'tag-fail')+'">'+(h.success?'OK':'FAIL')+'</span></td>'+'<td>'+(title||'<span style="color:var(--dim)">-</span>')+'</td>'+'<td style="text-align:right">'+(d.link_count||'-')+'</td>'+'<td style="text-align:right">'+(d.image_count||'-')+'</td>'+'<td style="text-align:right">'+fmtNum(d.text_length||0)+'</td>'+'<td style="text-align:right">'+fmtBytes(d.html_length||0)+'</td>'+'<td style="text-align:right;color:var(--warn)">'+h.timing_ms+'</td>'+'</tr>';
+  }).join('');
+}
+
+// Render Charts
+function renderCharts(){
+  const ok=historyData.filter(h=>h.success&&h.data);
+  if(!ok.length)return;
+  buildBarChart('chartLinks',ok.map(h=>({label:shortUrl(h.url),value:h.data.link_count||0})),'var(--accent)');
+  buildBarChart('chartImages',ok.map(h=>({label:shortUrl(h.url),value:h.data.image_count||0})),'var(--info)');
+  buildBarChart('chartText',ok.map(h=>({label:shortUrl(h.url),value:h.data.text_length||0})),'var(--warn)');
+  buildBarChart('chartSpeed',historyData.map(h=>({label:shortUrl(h.url),value:h.timing_ms})),'var(--danger)');
+}
+function buildBarChart(id,items,color){
+  const el=document.getElementById(id);
+  if(!items.length){el.innerHTML='<div class="empty">No data</div>';return;}
+  const max=Math.max(...items.map(i=>i.value),1);
+  el.innerHTML=items.slice(-12).map(i=>{
+    const h=Math.max(4,Math.round((i.value/max)*180));
+    return '<div class="bar-col"><div class="bar-val">'+fmtNum(i.value)+'</div><div class="bar" style="height:'+h+'px;background:'+color+'"></div><div class="bar-lbl">'+i.label+'</div></div>';
+  }).join('');
+}
+
+// Render Compare
+function renderCompare(){
+  const ok=historyData.filter(h=>h.success&&h.data);
+  const groups={};
+  ok.forEach(h=>{
+    const host=shortUrl(h.url);
+    if(!groups[host])groups[host]=[];
+    groups[host].push(h);
+  });
+  const tbody=document.getElementById('compareBody');
+  const empty=document.getElementById('compareEmpty');
+  const entries=Object.entries(groups);
+  if(!entries.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=entries.map(([host,items])=>{
+    const n=items.length;
+    const avgSpd=Math.round(items.reduce((s,h)=>s+h.timing_ms,0)/n);
+    const avgLnk=Math.round(items.reduce((s,h)=>s+(h.data.link_count||0),0)/n);
+    const avgImg=Math.round(items.reduce((s,h)=>s+(h.data.image_count||0),0)/n);
+    const avgTxt=Math.round(items.reduce((s,h)=>s+(h.data.text_length||0),0)/n);
+    const lastTitle=items[items.length-1].data.title||'-';
+    const fetchers=items.map(h=>h.fetcher);
+    const fastest=items.reduce((a,b)=>a.timing_ms<b.timing_ms?a:b);
+    return '<tr><td><strong>'+host+'</strong></td><td>'+n+'</td><td>'+avgSpd+'ms</td><td>'+avgLnk+'</td><td>'+avgImg+'</td><td>'+fmtNum(avgTxt)+'</td><td>'+lastTitle.substring(0,30)+'</td><td><span class="tag tag-ok">'+fastest.fetcher+'</span></td></tr>';
+  }).join('');
+}
+
+// Render Timeline
+function renderTimeline(){
+  const el=document.getElementById('timelineContent');
+  const empty=document.getElementById('timelineEmpty');
+  if(!historyData.length){el.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  el.innerHTML=[...historyData].reverse().map((h,i)=>{
+    const d=h.data||{};
+    const t=new Date(h.timestamp).toLocaleString();
+    const color=h.success?'var(--accent)':'var(--danger)';
+    return '<div style="padding:16px;border-left:3px solid '+color+';margin-bottom:12px;background:var(--input);border-radius:0 8px 8px 0">'+'<div style="display:flex;justify-content:space-between;align-items:center">'+'<div><strong>'+shortUrl(h.url)+'</strong> <span class="tag '+(h.success?'tag-ok':'tag-fail')+'">'+(h.success?'OK':'FAIL')+'</span> <span class="tag tag-info">'+h.fetcher+'</span></div>'+'<span style="color:var(--dim);font-size:12px">'+t+'</span></div>'+(h.success&&d.title?'<div style="margin-top:8px;font-size:13px">Title: <strong>'+d.title+'</strong></div>':'')+(h.success?'<div style="margin-top:4px;font-size:12px;color:var(--txt2)">Links: '+(d.link_count||0)+' | Images: '+(d.image_count||0)+' | Text: '+fmtNum(d.text_length||0)+' chars | HTML: '+fmtBytes(d.html_length||0)+' | Speed: '+h.timing_ms+'ms</div>':'<div style="margin-top:4px;font-size:12px;color:var(--danger)">Error: '+h.error+'</div>')+'</div>';
+  }).join('');
+}
+
+// Detail Modal
+function showDetail(idx){
+  const h=historyData[idx];
+  if(!h)return;
+  const d=h.data||{};
+  document.getElementById('detailTitle').textContent=shortUrl(h.url)+' - Scrape Details';
+  let html='<div class="kv-grid">';
+  html+='<div class="k">URL</div><div class="v"><a href="'+h.url+'" target="_blank" style="color:var(--accent)">'+h.url+'</a></div>';
+  html+='<div class="k">Timestamp</div><div class="v">'+new Date(h.timestamp).toLocaleString()+'</div>';
+  html+='<div class="k">Fetcher</div><div class="v"><span class="tag tag-info">'+h.fetcher+'</span></div>';
+  html+='<div class="k">Status</div><div class="v"><span class="tag '+(h.success?'tag-ok':'tag-fail')+'">'+(h.success?'SUCCESS':'FAILED')+'</span></div>';
+  html+='<div class="k">Response Time</div><div class="v" style="color:var(--warn)">'+h.timing_ms+' ms</div>';
+  if(h.success){
+    if(d.title)html+='<div class="k">Page Title</div><div class="v"><strong>'+d.title+'</strong></div>';
+    if(d.link_count!==undefined)html+='<div class="k">Links Found</div><div class="v">'+d.link_count+'</div>';
+    if(d.image_count!==undefined)html+='<div class="k">Images Found</div><div class="v">'+d.image_count+'</div>';
+    if(d.text_length)html+='<div class="k">Text Length</div><div class="v">'+fmtNum(d.text_length)+' characters</div>';
+    if(d.html_length)html+='<div class="k">HTML Size</div><div class="v">'+fmtBytes(d.html_length)+'</div>';
+    if(d.links){
+      html+='<div class="k">Links</div><div class="v">';
+      d.links.slice(0,20).forEach(l=>{html+='<div style="font-size:12px;margin-bottom:4px"><a href="'+l.href+'" target="_blank" style="color:var(--accent)">'+l.text+'</a></div>';});
+      html+='</div>';
+    }
+    if(d.images){
+      html+='<div class="k">Images</div><div class="v">';
+      d.images.slice(0,10).forEach(img=>{html+='<div style="font-size:12px;margin-bottom:4px">'+img.alt+' <span style="color:var(--dim)">'+img.src.substring(0,60)+'</span></div>';});
+      html+='</div>';
+    }
+    if(d.text)html+='<div class="k">Text Preview</div><div class="v" style="max-height:200px;overflow-y:auto;font-size:12px;white-space:pre-wrap">'+d.text.substring(0,1000)+'</div>';
+  }else{
+    html+='<div class="k">Error</div><div class="v" style="color:var(--danger)">'+h.error+'</div>';
+  }
+  html+='</div>';
+  html+='<div style="margin-top:16px"><h3 style="font-size:14px;margin-bottom:8px">Raw JSON</h3><pre style="background:var(--input);padding:12px;border-radius:8px;font-size:11px;overflow:auto;max-height:200px;font-family:monospace;color:var(--accent)">'+JSON.stringify(h,null,2)+'</pre></div>';
+  document.getElementById('detailContent').innerHTML=html;
+  document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('show')}
+
+// Export CSV
+function exportCSV(){
+  if(!historyData.length){toast('No data to export',false);return;}
+  const headers=['URL','Fetcher','Status','Title','Links','Images','Text Length','HTML Size','Speed (ms)','Timestamp'];
+  const rows=historyData.map(h=>{
+    const d=h.data||{};
+    return [h.url,h.fetcher,h.success?'OK':'FAIL',d.title||'',d.link_count||0,d.image_count||0,d.text_length||0,d.html_length||0,h.timing_ms,h.timestamp].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  });
+  const csv=headers.join(',')+String.fromCharCode(10)+rows.join(String.fromCharCode(10));
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='scrapling_data_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  toast('CSV exported!');
+}
+
+// Export JSON
+function exportJSON(){
+  if(!historyData.length){toast('No data to export',false);return;}
+  const blob=new Blob([JSON.stringify(historyData,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='scrapling_data_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  toast('JSON exported!');
+}
+
+// Raw JSON
+function renderRaw(){
+  document.getElementById('rawJson').textContent=JSON.stringify(historyData,null,2);
+}
+
+// Refresh All
+async function refreshAll(){
+  const ok=await fetchHistory();
+  if(ok){
+    renderStats();
+    renderTable();
+    renderCharts();
+    renderCompare();
+    renderTimeline();
+    renderRaw();
+    toast('Data refreshed! ('+historyData.length+' records)');
+  }else{
+    toast('Cannot connect to server',false);
+  }
+}
+
+// Init
+refreshAll();
+setInterval(async()=>{const ok=await fetchHistory();if(ok){renderStats();renderTable();}},10000);
+</script>
+</body>
+</html>

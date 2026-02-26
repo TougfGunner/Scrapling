@@ -81,13 +81,13 @@ def run_scrape(url, fetcher_type="basic", selectors=None, extract_type="full"):
     try:
         if fetcher_type == "basic":
             from scrapling import Fetcher
-            page = Fetcher.get(url)
+            page = Fetcher().get(url)
         elif fetcher_type == "stealthy":
             from scrapling.fetchers import StealthyFetcher
-            page = StealthyFetcher.fetch(url)
+            page = StealthyFetcher().get(url)
         elif fetcher_type == "playwright":
             from scrapling.fetchers import PlayWrightFetcher
-            page = PlayWrightFetcher.fetch(url)
+            page = PlayWrightFetcher().get(url)
         else:
             result["error"] = f"Unknown fetcher type: {fetcher_type}"
             return result
@@ -99,7 +99,7 @@ def run_scrape(url, fetcher_type="basic", selectors=None, extract_type="full"):
                 data["title"] = ""
                 title_els = page.css("title")
                 if title_els:
-                    data["title"] = title_els[0].text if hasattr(title_els[0], 'text') else str(title_els[0])
+                    data["title"] = title_els[0].text() if hasattr(title_els[0], 'text') else str(title_els[0])
                 data["text_length"] = len(page.get_all_text()) if hasattr(page, 'get_all_text') else 0
                 data["html_length"] = len(str(page.body)) if hasattr(page, 'body') else 0
                 links = page.css("a[href]")
@@ -113,7 +113,7 @@ def run_scrape(url, fetcher_type="basic", selectors=None, extract_type="full"):
                 if links:
                     for a in links[:50]:
                         href = a.attrib.get("href", "") if hasattr(a, 'attrib') else ""
-                        txt = a.text if hasattr(a, 'text') else str(a)
+                        txt = a.text() if hasattr(a, 'text') else str(a)
                         link_list.append({"href": href, "text": txt[:100]})
                 data["links"] = link_list
                 
@@ -135,7 +135,7 @@ def run_scrape(url, fetcher_type="basic", selectors=None, extract_type="full"):
                 el_list = []
                 if elements:
                     for el in elements[:30]:
-                        txt = el.text if hasattr(el, 'text') else str(el)
+                        txt = el.text() if hasattr(el, 'text') else str(el)
                         el_list.append(txt[:200])
                 data["elements"] = el_list
                 
@@ -257,6 +257,13 @@ class ScraplingHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/clear-history":
             SCRAPE_HISTORY.clear()
             self.send_json({"success": True, "message": "History cleared"})
+
+                    elif path == "/dashboard":
+            dashboard_path = Path(__file__).parent / "data_dashboard.html"
+            if dashboard_path.exists():
+                self.send_html(dashboard_path.read_text())
+            else:
+                self.send_html("<h1>Dashboard not found</h1><p>data_dashboard.html is missing</p>")
             
         else:
             self.send_json({"error": "Not found"}, 404)
@@ -319,6 +326,7 @@ def main():
     print("  =============================================")
     print(f"  Server: http://{HOST}:{PORT}")
     print("  Press Ctrl+C to stop")
+    print(f"    Dashboard: http://{HOST}:{PORT}/dashboard")
     print("")
     
     # Check Scrapling
@@ -666,6 +674,8 @@ body {
       <div class="nav-section">System</div>
       <div class="nav-item" onclick="showPage('history')"><span class="icon">&#9201;</span> History</div>
       <div class="nav-item" onclick="showPage('settings')"><span class="icon">&#9881;</span> Settings</div>
+          <a href="/dashboard" target="_blank" class="nav-item" style="color:var(--accent);text-decoration:none"><span class="icon">&#128202;</span> Data Dashboard</a>
+      
     </nav>
 
     <!-- Content -->
